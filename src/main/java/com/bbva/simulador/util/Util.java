@@ -1,6 +1,10 @@
 package com.bbva.simulador.util;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import com.bbva.simulador.domain.Fila;
@@ -17,12 +21,14 @@ public class Util {
 			cuota=cn/((1-(Math.pow((1+i), -1*n)))/i);
 		}
 		
-		return round(cuota,2);
+		return cuota;
 	}
 	public static List<Fila> lista(Request request){
 		List<Fila> filas=new ArrayList<Fila>();
 		double cuota=obtenerCoutaMensual(request);
 		double i=request.getTasa();
+		Date fecha=stringToDate(request.getFecha());
+		
 		Fila fila=new Fila();
 		fila.setNroCouta(0);
 		fila.setInteres(0);
@@ -37,18 +43,23 @@ public class Util {
 		double totalamortizado=0;
 		for (int j = 1; j <= request.getPlazo(); j++) {
 			fila=new Fila();
+			//agregar a la fecha un mes
+			Date fechaCouta=addMonth(fecha,1);
+			fila.setFecha(dateToString(fechaCouta));
 			fila.setNroCouta(j);			
-			double interes=round(i*capitalPendiente,2);
-			amortizacion=round(cuota-interes,2);
-			fila.setInteres(interes);
-			fila.setAmortizacion(amortizacion);
-			fila.setCuotaPago(cuota);
-			totalamortizado=round(amortizacion+amorTizadoAnterior,2);
-			fila.setTotalAmortizado(totalamortizado);
-			fila.setCapitalPendiente(round(capitalPendiente-amortizacion,2));
+			double interes=i*capitalPendiente;
+			amortizacion=cuota-interes;
+			fila.setInteres(round(interes,2));
+			fila.setAmortizacion(round(amortizacion,2));
+			fila.setCuotaPago(round(cuota,2));
+			totalamortizado=amortizacion+amorTizadoAnterior;
+			fila.setTotalAmortizado(round(totalamortizado,2));
+			capitalPendiente=capitalPendiente-amortizacion;
+			fila.setCapitalPendiente(round(capitalPendiente,2));
 			filas.add(fila);
-			amorTizadoAnterior=fila.getTotalAmortizado();
-			capitalPendiente=fila.getCapitalPendiente();
+			amorTizadoAnterior=totalamortizado;
+//			capitalPendiente=fila.getCapitalPendiente();
+			fecha=fechaCouta;
 			
 		}
 		
@@ -62,4 +73,27 @@ public class Util {
 	    long tmp = Math.round(value);
 	    return (double) tmp / factor;
 	}
+	public static Date stringToDate(String dateInString){
+		 SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+		 Date date=new Date();
+	        try {
+	            date = formatter.parse(dateInString);
+
+	        } catch (ParseException e) {
+	            e.printStackTrace();
+	        }
+	        return date;
+	}
+	public static String dateToString(Date date){
+		 SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+		 String strDate=null;
+	        strDate = formatter.format(date);
+	        return strDate;
+	}
+	 public static Date addMonth(Date date, int i) {
+	        Calendar cal = Calendar.getInstance();
+	        cal.setTime(date);
+	        cal.add(Calendar.MONTH, i);
+	        return cal.getTime();
+	    }
 }
